@@ -6,7 +6,7 @@ macOS: [nu-book/zxing-cpp](https://github.com/nu-book/zxing-cpp/releases)
 
 Windows: [rootzzp/zxing-cpp-1](https://github.com/rootzzp/zxing-cpp-1) : too old
 
-[glassechidna/zxing-cpp](https://github.com/glassechidna/zxing-cpp) ?
+[glassechidna/zxing-cpp](https://github.com/glassechidna/zxing-cpp) : even older
 
 `vcpkg zxing-cpp` : too old
 
