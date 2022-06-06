@@ -4,7 +4,9 @@ Decode QR code with ZXing.
 
 macOS: [nu-book/zxing-cpp](https://github.com/nu-book/zxing-cpp/releases)
 
-Windows: `vcpkg zxing-cpp` is too old
+Windows: [rootzzp/zxing-cpp-1](https://github.com/rootzzp/zxing-cpp-1)
+
+`vcpkg zxing-cpp` is too old
 
 #### Syntax
 
