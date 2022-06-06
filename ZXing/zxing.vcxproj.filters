@@ -35,6 +35,8 @@
     <ClInclude Include="support\stb_image.h" />
     <ClInclude Include="include\BarcodeFormat.h" />
     <ClInclude Include="include\Result.h" />
+    <ClInclude Include="include\ReadBarcode.h" />
+    <ClInclude Include="include\mac\ImageView.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="4D Plugin API">

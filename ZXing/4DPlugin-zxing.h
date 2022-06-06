@@ -14,21 +14,12 @@
 #include "4DPluginAPI.h"
 
 #include "DecodeHints.h"
-
-#if VERSIONMAC
-#include "ImageView.h"
-#endif
-
 #include "Result.h"
-
-#if VERSIONWIN
-namespace ZXing {
-	using Results = std::vector<Result>;
-}
-#endif
-
 #include "ReadBarcode.h"
 #include "BarcodeFormat.h"
+#include "ImageView.h"
+
+#include <algorithm>
 
 #if VERSIONMAC
 #import <Accelerate/Accelerate.h>

@@ -18,14 +18,22 @@
 */
 
 #include "ZXConfig.h"
+#include "ZXContainerAlgorithms.h"
+#ifndef ZX_FAST_BIT_STORAGE
 #include "BitHacks.h"
+#endif
 
+#include <algorithm>
+#include <cassert>
 #include <cstdint>
 #include <iterator>
+#include <type_traits>
+#include <utility>
 #include <vector>
-#include <algorithm>
 
 namespace ZXing {
+
+class ByteArray;
 
 template <typename Iterator>
 struct Range {
@@ -35,9 +43,7 @@ struct Range {
 };
 
 /**
-* <p>A simple, fast array of bits, represented compactly by an array of ints internally.</p>
-*
-* @author Sean Owen
+* A simple, fast array of bits.
 */
 class BitArray
 {
@@ -60,9 +66,15 @@ public:
 #ifdef ZX_FAST_BIT_STORAGE
 	using Iterator = std::vector<uint8_t>::const_iterator;
 #else
-	class Iterator : public std::iterator<std::bidirectional_iterator_tag, bool, int, bool*, bool>
+	class Iterator
 	{
 	public:
+		using iterator_category = std::bidirectional_iterator_tag;
+		using value_type = bool;
+		using difference_type = int;
+		using pointer = bool*;
+		using reference = bool;
+
 		bool operator*() const { return (*_value & _mask) != 0; }
 
 		Iterator& operator++()
@@ -144,7 +156,7 @@ public:
 
 	int size() const noexcept {
 #ifdef ZX_FAST_BIT_STORAGE
-		return static_cast<int>(_bits.size());
+		return Size(_bits);
 #else
 		return _size;
 #endif
@@ -168,8 +180,8 @@ public:
 
 	// If you know exactly how may bits you are going to iterate
 	// and that you access bit in sequence, iterator is faster than get().
-	// However, be extremly careful since there is no check whatsoever.
-	// (Performance is the reason for the iterator to exist int the first place!)
+	// However, be extremely careful since there is no check whatsoever.
+	// (Performance is the reason for the iterator to exist in the first place.)
 #ifdef ZX_FAST_BIT_STORAGE
 	Iterator iterAt(int i) const noexcept { return {_bits.cbegin() + i}; }
 	Iterator begin() const noexcept { return _bits.cbegin(); }
@@ -226,60 +238,16 @@ public:
 	*
 	* @param i bit to set
 	*/
-	void set(int i) {
+	void set(int i, bool val) {
 #ifdef ZX_FAST_BIT_STORAGE
-		_bits.at(i) = 1;
+		_bits.at(i) = val;
 #else
-		_bits.at(i >> 5) |= 1 << (i & 0x1F);
+		if (val)
+			_bits.at(i >> 5) |= 1 << (i & 0x1F);
+		else
+			_bits.at(i >> 5) &= ~(1 << (i & 0x1F));
 #endif
 	}
-
-#if 0 // deprecated / unused code
-	/**
-	* Flips bit i.
-	*
-	* @param i bit to set
-	*/
-	void flip(int i) {
-		_bits.at(i >> 5) ^= 1 << (i & 0x1F);
-	}
-
-	void flipAll() {
-		for (auto& i : _bits) {
-			i = ~i;
-		}
-	}
-
-	/**
-	* @param from first bit to check
-	* @return index of first bit that is set, starting from the given index, or size if none are set
-	*  at or beyond this given index
-	* @see #getNextUnset(int)
-	*/
-	int getNextSet(int from) const {
-		return getNextSet(iterAt(from)) - begin();
-	}
-
-	/**
-	* @param from index to start looking for unset bit
-	* @return index of next unset bit, or {@code size} if none are unset until the end
-	* @see #getNextSet(int)
-	*/
-	int getNextUnset(int from) const {
-		return getNextUnset(iterAt(from)) - begin();
-	}
-
-	/**
-	* Sets a range of bits.
-	*
-	* @param start start of range, inclusive.
-	* @param end end of range, exclusive
-	*/
-	void setRange(int start, int end);
-#endif
-
-	// TODO: this method is used in BitWrapperBinerizer but never linked?!?
-	void getSubArray(int offset, int length, BitArray& result) const;
 
 	/**
 	* Clears all bits (sets to false).
@@ -306,9 +274,9 @@ public:
 #endif
 
 	// Little helper method to make common isRange use case more readable.
-	// Pass positive zone size to look for quite zone after i and negative for zone in front of i.
+	// Pass positive zone size to look for quiet zone after i and negative for zone in front of i.
 	// Set allowClippedZone to false if clipping the zone at the image border is not acceptable.
-	bool hasQuiteZone(Iterator i, int signedZoneSize, bool allowClippedZone = true) const {
+	bool hasQuietZone(Iterator i, int signedZoneSize, bool allowClippedZone = true) const {
 		int index = static_cast<int>(i - begin());
 		if (signedZoneSize > 0) {
 			if (!allowClippedZone && index + signedZoneSize >= size())
@@ -321,8 +289,8 @@ public:
 		}
 	}
 
-	bool hasQuiteZone(ReverseIterator i, int signedZoneSize, bool allowClippedZone = true) const {
-		return hasQuiteZone(i.base(), -signedZoneSize, allowClippedZone);
+	bool hasQuietZone(ReverseIterator i, int signedZoneSize, bool allowClippedZone = true) const {
+		return hasQuietZone(i.base(), -signedZoneSize, allowClippedZone);
 	}
 
 	/**
@@ -371,19 +339,13 @@ public:
 	void bitwiseXOR(const BitArray& other);
 
 	/**
-	*
-	* @param bitOffset first bit to start writing
-	* @param ouput array to write into. Bytes are written most-significant byte first. This is the opposite
-	*  of the internal representation, which is exposed by {@link #getBitArray()}
-	* @param numBytes how many bytes to write
+	* @param bitOffset first bit to extract
+	* @param numBytes how many bytes to extract (-1 == until the end, padded with '0')
+	* @return Bytes are written most-significant bit first.
 	*/
-	void toBytes(int bitOffset, uint8_t* output, int numBytes) const;
+	ByteArray toBytes(int bitOffset = 0, int numBytes = -1) const;
 
-	/**
-	* @return underlying array of ints. The first element holds the first 32 bits, and the least
-	*         significant bit is bit 0.
-	*/
-	//const std::vector<uint32_t>& bitArray() const { return _bits; }
+	Range range() const { return {begin(), end()}; }
 
 	friend bool operator==(const BitArray& a, const BitArray& b)
 	{
@@ -395,5 +357,57 @@ public:
 	}
 };
 
+template<typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
+T& AppendBit(T& val, bool bit)
+{
+	return (val <<= 1) |= static_cast<T>(bit);
+}
+
+template <typename ARRAY, typename = std::enable_if_t<std::is_integral_v<typename ARRAY::value_type>>>
+int ToInt(const ARRAY& a)
+{
+	assert(Reduce(a) <= 32);
+
+	int pattern = 0;
+	for (int i = 0; i < Size(a); i++)
+		pattern = (pattern << a[i]) | ~(0xffffffff << a[i]) * (~i & 1);
+	return pattern;
+}
+
+inline int ReadBits(BitArray::Range& bits, int n)
+{
+	int res = 0;
+	for (; n > 0 && bits.size(); --n, bits.begin++)
+		AppendBit(res, *bits.begin);
+	return res;
+}
+
+template <typename T = int, typename = std::enable_if_t<std::is_integral_v<T>>>
+T ToInt(const BitArray& bits, int pos = 0, int count = 8 * sizeof(T))
+{
+	assert(0 <= count && count <= 8 * (int)sizeof(T));
+	assert(0 <= pos && pos + count <= bits.size());
+
+	count = std::min(count, bits.size());
+	int res = 0;
+	auto it = bits.iterAt(pos);
+	for (int i = 0; i < count; ++i, ++it)
+		AppendBit(res, *it);
+
+	return res;
+}
+
+template <typename T = int, typename = std::enable_if_t<std::is_integral_v<T>>>
+std::vector<T> ToInts(const BitArray& bits, int wordSize, int totalWords, int offset = 0)
+{
+	assert(totalWords >= bits.size() / wordSize);
+	assert(wordSize <= 8 * (int)sizeof(T));
+
+	std::vector<T> res(totalWords, 0);
+	for (int i = offset; i < bits.size(); i += wordSize)
+		res[(i - offset) / wordSize] = ToInt(bits, i, wordSize);
+
+	return res;
+}
 
 } // ZXing

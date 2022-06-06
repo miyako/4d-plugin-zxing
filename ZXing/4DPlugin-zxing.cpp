@@ -76,20 +76,11 @@ static ZXing::Results pictureToImage(PA_Picture p) {
         PA_UnlockHandle(h);
         
         if (buf != nullptr) {
-            
-#if VERSIONMAC
+
 			ZXing::ImageView image((const uint8_t *)buf, x, y, ZXing::ImageFormat::RGB);
+
             results = ReadBarcodes(image);
-#endif
-#if VERSIONWIN
-			results = { 
-				ZXing::ReadBarcode(x, y, 
-				(unsigned char *)buf, 
-				x * 3, 
-				3, 
-				0, 1, 2,{}, true, true)
-			};
-#endif
+
             free(buf);
         }
 
@@ -136,70 +127,15 @@ void zxing_decode(PA_PluginParameters params) {
         }
         
         ob_set_a(o, L"text", result.text().c_str());
-
-#if VERSIONMAC
 		ob_set_s(o, L"symbologyIdentifier", result.symbologyIdentifier().c_str());
 		ob_set_a(o, L"ecLevel", result.ecLevel().c_str());
 		ob_set_s(o, L"sequenceId", result.sequenceId().c_str());
         ob_set_n(o, L"orientation", result.orientation());
 		ob_set_n(o, L"sequenceSize", result.sequenceSize());
 		ob_set_n(o, L"numBits", result.numBits());
-#endif
 
         switch (result.format()) {
-		case ZXing::BarcodeFormat::AZTEC:
 
-			break;
-		case ZXing::BarcodeFormat::CODABAR:
-
-			break;
-		case ZXing::BarcodeFormat::CODE_39:
-
-			break;
-		case ZXing::BarcodeFormat::CODE_93:
-
-			break;
-		case ZXing::BarcodeFormat::CODE_128:
-
-			break;
-		case ZXing::BarcodeFormat::DATA_MATRIX:
-
-			break;
-		case ZXing::BarcodeFormat::EAN_8:
-
-			break;
-		case ZXing::BarcodeFormat::EAN_13:
-
-			break;
-		case ZXing::BarcodeFormat::ITF:
-
-			break;
-		case ZXing::BarcodeFormat::MAXICODE:
-
-			break;
-		case ZXing::BarcodeFormat::PDF_417:
-
-			break;
-		case ZXing::BarcodeFormat::QR_CODE:
-
-			break;
-		case ZXing::BarcodeFormat::RSS_14:
-
-			break;
-		case ZXing::BarcodeFormat::RSS_EXPANDED:
-
-			break;
-		case ZXing::BarcodeFormat::UPC_A:
-
-			break;
-		case ZXing::BarcodeFormat::UPC_E:
-
-			break;
-		case ZXing::BarcodeFormat::UPC_EAN_EXTENSION:
-
-			break;
-			
-#if VERSIONMAC
 		case ZXing::BarcodeFormat::None:
 			ob_set_s(o, L"format", "none");
 			break;
@@ -251,10 +187,8 @@ void zxing_decode(PA_PluginParameters params) {
 		case ZXing::BarcodeFormat::UPCE:
 			ob_set_s(o, L"format", "UPCE");
 			break;
-#endif
         }
         
-#if VERSIONMAC
         ob_set_b(o, L"isLastInSequence", result.isLastInSequence());
         ob_set_b(o, L"isMirrored", result.isMirrored());
         ob_set_b(o, L"isPartOfSequence", result.isPartOfSequence());
@@ -281,7 +215,6 @@ void zxing_decode(PA_PluginParameters params) {
 		}
 
 		ob_set_c(o, L"corners", corners);
-#endif
 
         PA_Variable v = PA_CreateVariable(eVK_Object);
         PA_SetObjectVariable(&v, o);

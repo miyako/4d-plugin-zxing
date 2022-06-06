@@ -20,8 +20,6 @@
 
 namespace ZXing {
 
-class LuminanceSource;
-
 /**
 * This Binarizer implementation uses the old ZXing global histogram approach. It is suitable
 * for low-end mobile devices which don't have enough CPU or memory to use a local thresholding
@@ -35,29 +33,12 @@ class LuminanceSource;
 */
 class GlobalHistogramBinarizer : public BinaryBitmap
 {
-protected:
-	std::shared_ptr<const LuminanceSource> _source;
-	bool _pureBarcode;
-
 public:
-	explicit GlobalHistogramBinarizer(std::shared_ptr<const LuminanceSource> source, bool pureBarcode = false);
+	explicit GlobalHistogramBinarizer(const ImageView& buffer);
 	~GlobalHistogramBinarizer() override;
 
-	bool isPureBarcode() const override;
-	int width() const override;
-	int height() const override;
-	bool getBlackRow(int y, BitArray& row) const override;
+	bool getPatternRow(int row, int rotation, PatternRow &res) const override;
 	std::shared_ptr<const BitMatrix> getBlackMatrix() const override;
-	bool canCrop() const override;
-	std::shared_ptr<BinaryBitmap> cropped(int left, int top, int width, int height) const override;
-	bool canRotate() const override;
-	std::shared_ptr<BinaryBitmap> rotated(int degreeCW) const override;
-
-	virtual std::shared_ptr<BinaryBitmap> newInstance(const std::shared_ptr<const LuminanceSource>& source) const;
-
-private:
-	struct DataCache;
-	std::unique_ptr<DataCache> _cache;
 };
 
 } // ZXing

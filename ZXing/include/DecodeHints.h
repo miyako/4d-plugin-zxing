@@ -2,6 +2,7 @@
 /*
 * Copyright 2016 Nu-book Inc.
 * Copyright 2016 ZXing authors
+* Copyright 2020 Axel Waggershauser
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -16,170 +17,139 @@
 * limitations under the License.
 */
 
-#include <vector>
-#include <sstream>
-#include <string>
-
 #include "BarcodeFormat.h"
+
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace ZXing {
 
+/**
+ * @brief The Binarizer enum
+ *
+ * Specify which algorithm to use for the grayscale to binary transformation.
+ * The difference is how to get to a threshold value T which results in a bit
+ * value R = L <= T.
+ */
+enum class Binarizer : unsigned char // needs to unsigned for the bitfield below to work, uint8_t fails as well
+{
+	LocalAverage,    ///< T = average of neighboring pixels for 2D and GlobalHistogram for 1D (HybridBinarizer)
+	GlobalHistogram, ///< T = valley between the 2 largest peaks in the histogram (per line in 1D case)
+	FixedThreshold,  ///< T = 127
+	BoolCast,        ///< T = 0, fastest possible
+};
+
+enum class EanAddOnSymbol : unsigned char // see above
+{
+	Ignore,  ///< Ignore any Add-On symbol during read/scan
+	Read,    ///< Read EAN-2/EAN-5 Add-On symbol if found
+	Require, ///< Require EAN-2/EAN-5 Add-On symbol to be present
+};
+
 class DecodeHints
 {
+	bool _tryHarder : 1;
+	bool _tryRotate : 1;
+	bool _tryDownscale : 1;
+	bool _isPure : 1;
+	bool _tryCode39ExtendedMode : 1;
+	bool _validateCode39CheckSum : 1;
+	bool _validateITFCheckSum : 1;
+	bool _returnCodabarStartEnd : 1;
+	Binarizer _binarizer : 2;
+	EanAddOnSymbol _eanAddOnSymbol : 2;
+
+	std::string _characterSet;
+	std::vector<int> _allowedLengths;
+	BarcodeFormats _formats = BarcodeFormat::None;
+	uint16_t _downscaleThreshold = 500;
+	uint8_t _downscaleFactor = 3;
+	uint8_t _minLineCount = 2;
+	uint8_t _maxNumberOfSymbols = 0xff;
+
 public:
+	// bitfields don't get default initialized to 0.
+	DecodeHints()
+		: _tryHarder(1), _tryRotate(1), _tryDownscale(1), _isPure(0), _tryCode39ExtendedMode(0),
+		  _validateCode39CheckSum(0), _validateITFCheckSum(0), _returnCodabarStartEnd(0),
+		  _binarizer(Binarizer::LocalAverage), _eanAddOnSymbol(EanAddOnSymbol::Ignore)
+	{}
 
-	std::vector<BarcodeFormat> possibleFormats() const;
-	DecodeHints& setPossibleFormats(const std::vector<BarcodeFormat>& formats);
+#define ZX_PROPERTY(TYPE, GETTER, SETTER) \
+	TYPE GETTER() const noexcept { return _##GETTER; } \
+	DecodeHints& SETTER(TYPE v) { return _##GETTER = std::move(v), *this; }
 
-	bool hasFormat(BarcodeFormat f) const noexcept {
-		return getFlag((int)f);
-	}
+	/// Specify a set of BarcodeFormats that should be searched for, the default is all supported formats.
+	ZX_PROPERTY(BarcodeFormats, formats, setFormats)
 
-	bool hasNoFormat() const noexcept {
-		return (_flags & ~(0xffffffff << (int)BarcodeFormat::FORMAT_COUNT)) == 0;
-	}
+	/// Spend more time to try to find a barcode; optimize for accuracy, not speed.
+	ZX_PROPERTY(bool, tryHarder, setTryHarder)
 
-	/**
-	* Spend more time to try to find a barcode; optimize for accuracy, not speed.
-	*/
-	bool tryHarder() const {
-		return getFlag(TRY_HARDER);
-	}
+	/// Also try detecting code in 90, 180 and 270 degree rotated images.
+	ZX_PROPERTY(bool, tryRotate, setTryRotate)
 
-	DecodeHints& setTryHarder(bool v) {
-		setFlag(TRY_HARDER, v);
-		return *this;
-	}
+	/// Also try detecting code in downscaled images (depending on image size).
+	ZX_PROPERTY(bool, tryDownscale, setTryDownscale)
 
-	/**
-	* For 1D readers only, should try to rotate image 90 CCW if not barcode found.
-	*/
-	bool tryRotate() const {
-		return getFlag(TRY_ROTATE);
-	}
+	/// Binarizer to use internally when using the ReadBarcode function
+	ZX_PROPERTY(Binarizer, binarizer, setBinarizer)
 
-	DecodeHints& setTryRotate(bool v) {
-		setFlag(TRY_ROTATE, v);
-		return *this;
-	}
+	/// Set to true if the input contains nothing but a single perfectly aligned barcode (generated image)
+	ZX_PROPERTY(bool, isPure, setIsPure)
 
-	/**
-	* Specifies what character encoding to use when decoding, where applicable.
-	*/
-	const std::string& characterSet() const {
-		return _charset;
-	}
+	/// Image size ( min(width, height) ) threshold at which to start downscaled scanning
+	// WARNING: this API is experimental and may change/disappear
+	ZX_PROPERTY(uint16_t, downscaleThreshold, setDownscaleThreshold)
 
-	DecodeHints& setCharacterSet(const std::string& charset) {
-		_charset = charset;
-		return *this;
-	}
+	/// Scale factor used during downscaling, meaningful values are 2, 3 and 4
+	// WARNING: this API is experimental and may change/disappear
+	ZX_PROPERTY(uint8_t, downscaleFactor, setDownscaleFactor)
 
-	/**
-	* Allowed lengths of encoded data -- reject anything else..
-	*/
-	const std::vector<int>& allowedLengths() const {
-		return _lengths;
-	}
+	/// The number of scan lines in a 1D barcode that have to be equal to accept the result, default is 2
+	ZX_PROPERTY(uint8_t, minLineCount, setMinLineCount)
 
-	DecodeHints& setAllowLengths(const std::vector<int>& lengths) {
-		_lengths = lengths;
-		return *this;
-	}
+	/// The maximum number of symbols (barcodes) to detect / look for in the image with ReadBarcodes
+	ZX_PROPERTY(uint8_t, maxNumberOfSymbols, setMaxNumberOfSymbols)
 
-	/**
-	* If true, the CODE-39 reader will try to read extended mode.
-	*/
-	bool tryCode39ExtendedMode() const {
-		return getFlag(WITH_CODE_39_EXTENDED);
-	}
-	DecodeHints& setTryCode39ExtendedMode(bool v) {
-		setFlag(WITH_CODE_39_EXTENDED, v);
-		return *this;
-	}
+	/// Specifies what character encoding to use when decoding, where applicable.
+	ZX_PROPERTY(std::string, characterSet, setCharacterSet)
 
-	/**
-	* Assume Code 39 codes employ a check digit.
-	*/
-	bool assumeCode39CheckDigit() const {
-		return getFlag(ASSUME_CODE_39_CHECK_DIGIT);
-	}
-	DecodeHints& setAssumeCode39CheckDigit(bool v) {
-		setFlag(ASSUME_CODE_39_CHECK_DIGIT, v);
-		return *this;
-	}
+	/// Allowed lengths of encoded data -- reject anything else..
+	ZX_PROPERTY(std::vector<int>, allowedLengths, setAllowedLengths)
 
-	/**
-	* Assume the barcode is being processed as a GS1 barcode, and modify behavior as needed.
-	* For example this affects FNC1 handling for Code 128 (aka GS1-128).
-	*/
-	bool assumeGS1() const {
-		return getFlag(ASSUME_GS1);
-	}
-	DecodeHints& setAssumeGS1(bool v) {
-		setFlag(ASSUME_GS1, v);
-		return *this;
-	}
+	/// If true, the Code-39 reader will try to read extended mode.
+	ZX_PROPERTY(bool, tryCode39ExtendedMode, setTryCode39ExtendedMode)
+
+	/// Assume Code-39 codes employ a check digit and validate it.
+	ZX_PROPERTY(bool, validateCode39CheckSum, setValidateCode39CheckSum)
+
+	/// Assume ITF codes employ a GS1 check digit and validate it.
+	ZX_PROPERTY(bool, validateITFCheckSum, setValidateITFCheckSum)
 
 	/**
 	* If true, return the start and end digits in a Codabar barcode instead of stripping them. They
 	* are alpha, whereas the rest are numeric. By default, they are stripped, but this causes them
 	* to not be.
 	*/
-	bool returnCodabarStartEnd() const {
-		return getFlag(RETURN_CODABAR_START_END);
-	}
-	DecodeHints& setReturnCodabarStartEnd(bool v) {
-		setFlag(RETURN_CODABAR_START_END, v);
-		return *this;
-	}
+	ZX_PROPERTY(bool, returnCodabarStartEnd, setReturnCodabarStartEnd)
 
-	/**
-	* Allowed extension lengths for EAN or UPC barcodes. Other formats will ignore this.
-	* Maps to an {@code int[]} of the allowed extension lengths, for example [2], [5], or [2, 5].
-	* If it is optional to have an extension, do not set this hint. If this is set,
-	* and a UPC or EAN barcode is found but an extension is not, then no result will be returned
-	* at all.
-	*/
-	const std::vector<int>& allowedEanExtensions() const {
-		return _eanExts;
-	}
+	/// Specify whether to ignore, read or require EAN-2/5 add-on symbols while scanning EAN/UPC codes
+	ZX_PROPERTY(EanAddOnSymbol, eanAddOnSymbol, setEanAddOnSymbol)
 
-	DecodeHints& setAllowedEanExtensions(const std::vector<int>& extensions) {
-		_eanExts = extensions;
-		return *this;
-	}
+#undef ZX_PROPERTY
+#undef ZX_PROPERTY_DEPRECATED
 
-private:
-	uint32_t _flags = 0;
-	std::string _charset;
-	std::vector<int> _lengths;
-	std::vector<int> _eanExts;
+	/// NOTE: used to affect FNC1 handling for Code 128 (aka GS1-128) but behavior now based on position of FNC1.
+	[[deprecated]] bool assumeGS1() const noexcept { return true; }
+	[[deprecated]] DecodeHints& setAssumeGS1(bool v [[maybe_unused]]) { return *this; }
 
-	enum HintFlag
-	{
-		TRY_HARDER = static_cast<int>(BarcodeFormat::FORMAT_COUNT) + 1,
-		TRY_ROTATE,
-		WITH_CODE_39_EXTENDED,
-		ASSUME_CODE_39_CHECK_DIGIT,
-		ASSUME_GS1,
-		RETURN_CODABAR_START_END,
-		FLAG_COUNT
-	};
+	/// NOTE: use validateCode39CheckSum
+	[[deprecated]] bool assumeCode39CheckDigit() const noexcept { return validateCode39CheckSum(); }
+	[[deprecated]] DecodeHints& setAssumeCode39CheckDigit(bool v) { return setValidateCode39CheckSum(v); }
 
-	static_assert(FLAG_COUNT < 8 * sizeof(uint32_t), "HintFlag overflow");
-
-	bool getFlag(int f) const {
-		return (_flags & (1 << f)) != 0;
-	}
-
-	void setFlag(int f, bool v)
-	{
-		if (v)
-			_flags |= (1 << f);
-		else
-			_flags &= ~(1 << f);
-	}
+	bool hasFormat(BarcodeFormats f) const noexcept { return _formats.testFlags(f); }
+	bool hasNoFormat() const noexcept { return _formats.empty(); }
 };
 
 } // ZXing
