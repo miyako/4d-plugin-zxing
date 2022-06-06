@@ -16,22 +16,24 @@
 * limitations under the License.
 */
 
+#include "ResultPoint.h"
 #include "BitMatrix.h"
-#include "Quadrilateral.h"
 
-#include <utility>
+#include <vector>
 
 namespace ZXing {
 
 /**
-* Encapsulates the result of detecting a barcode in an image. This includes the raw
-* matrix of black/white pixels corresponding to the barcode and the position of the code
-* in the input image.
+* <p>Encapsulates the result of detecting a barcode in an image. This includes the raw
+* matrix of black/white pixels corresponding to the barcode, and possibly points of interest
+* in the image, like the location of finder patterns or corners of the barcode in the image.</p>
+*
+* @author Sean Owen
 */
 class DetectorResult
 {
 	BitMatrix _bits;
-	QuadrilateralI _position;
+	std::vector<ResultPoint> _points;
 
 	DetectorResult(const DetectorResult&) = delete;
 	DetectorResult& operator=(const DetectorResult&) = delete;
@@ -41,14 +43,12 @@ public:
 	DetectorResult(DetectorResult&&) = default;
 	DetectorResult& operator=(DetectorResult&&) = default;
 
-	DetectorResult(BitMatrix&& bits, QuadrilateralI&& position)
-		: _bits(std::move(bits)), _position(std::move(position))
+	DetectorResult(BitMatrix&& bits, std::vector<ResultPoint>&& points)
+		: _bits(std::move(bits)), _points(std::move(points))
 	{}
 
-	const BitMatrix& bits() const & { return _bits; }
-	BitMatrix&& bits() && { return std::move(_bits); }
-	const QuadrilateralI& position() const & { return _position; }
-	QuadrilateralI&& position() && { return std::move(_position); }
+	const BitMatrix& bits() const { return _bits; }
+	const std::vector<ResultPoint>& points() const { return _points; }
 
 	bool isValid() const { return !_bits.empty(); }
 };

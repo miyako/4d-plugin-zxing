@@ -1,4 +1,3 @@
-#pragma once
 /*
 * Copyright 2019 Axel Waggershauser
 *
@@ -15,23 +14,56 @@
 * limitations under the License.
 */
 
-#include "DecodeHints.h"
-#include "ImageView.h"
+#pragma once
+
 #include "Result.h"
+#include "BarcodeFormat.h"
+
+#include <vector>
 
 namespace ZXing {
 
 /**
- * Read barcode from an ImageView
+ * Read barcode from a grayscale buffer
  *
- * @param buffer  view of the image data including layout and format
- * @param hints  optional DecodeHints to parameterize / speed up decoding
- * @return #Result structure
+ * <p>Use {@link #ReadBarcode(int width, int height, unsigned char* data, int rowStride,
+				   std::vector<BarcodeFormat> formats = {}, bool tryRotate = true, bool tryHarder = true) to read a bar code from a buffer.
+ *
+ * @param width image width
+ * @param height image height
+ * @param data   image buffer
+ * @param rowstride  row stride
+ * @param formats   A list of format to search for ( faster)
+ * @param tryRotate   try to rotate the buffer to find the barcode (slower)
+ * @param tryHarder   try harder to find the barcode(slower). TODO needs to explain
+ * @return            #Result structure
+ * @since             0.x
  */
-Result ReadBarcode(const ImageView& buffer, const DecodeHints& hints = {});
+Result ReadBarcode(int width, int height, unsigned char* data, int rowStride,
+				   std::vector<BarcodeFormat> formats = {}, bool tryRotate = true, bool tryHarder = true);
 
-// WARNING: this API is experimental and may change/disappear
-Results ReadBarcodes(const ImageView& buffer, const DecodeHints& hints = {});
+/**
+ * Read barcode from a RGB buffer
+ *
+ * <p>Use {@link #ReadBarcode(int width, int height, unsigned char* data, int rowStride, int pixelStride, int rIndex, int gIndex, int bIndex,
+				   std::vector<BarcodeFormat> formats = {}, bool tryRotate = true, bool tryHarder = true) to read a bar code from a buffer.
+ *
+ * @param width image width
+ * @param height image height
+ * @param data   image buffer
+ * @param rowstride  row stride
+ * @param pixelstride  pixel stride (ie 4 for 32 bits)
+ * @param rIndex  red index
+ * @param gIndex  green index
+ * @param bIndex  blue index
+ * @param formats   A list of format to search for ( faster)
+ * @param tryRotate   try to rotate the buffer to find the barcode (slower)
+ * @param tryHarder   try harder to find the barcode(slower). TODO needs to explain
+ * @return            #Result structure
+ * @since             0.x
+ */
+Result ReadBarcode(int width, int height, unsigned char* data, int rowStride, int pixelStride, int rIndex, int gIndex, int bIndex,
+				   std::vector<BarcodeFormat> formats = {}, bool tryRotate = true, bool tryHarder = true);
 
 } // ZXing
 

@@ -16,8 +16,6 @@
 * limitations under the License.
 */
 
-#include "Point.h"
-
 namespace ZXing {
 
 /**
@@ -26,20 +24,39 @@ namespace ZXing {
 *
 * @author Sean Owen
 */
-class ResultPoint : public PointF
+class ResultPoint
 {
+	float _x = 0.f;
+	float _y = 0.f;
+
 public:
 	ResultPoint() = default;
-	ResultPoint(float x, float y) : PointF(x, y) {}
-	ResultPoint(int x, int y) : PointF(x, y) {}
-	template <typename T> ResultPoint(PointT<T> p) : PointF(p) {}
+	ResultPoint(float x, float y) : _x(x), _y(y) {}
+	ResultPoint(int x, int y) : _x(static_cast<float>(x)), _y(static_cast<float>(y)) {}
 
-	float x() const { return static_cast<float>(PointF::x); }
-	float y() const { return static_cast<float>(PointF::y); }
+	float x() const {
+		return _x;
+	}
 
-	void set(float x, float y) { *this = PointF(x, y); }
+	float y() const {
+		return _y;
+	}
 
+	bool operator==(const ResultPoint& other) const
+	{
+		return _x == other._x && _y == other._y;
+	}
+
+	void set(float x, float y) {
+		_x = x;
+		_y = y;
+	}
+
+	static float Distance(const ResultPoint& a, const ResultPoint& b);
+	static float Distance(float aX, float aY, float bX, float bY);
 	static float Distance(int aX, int aY, int bX, int bY);
+
+	static float SquaredDistance(const ResultPoint& a, const ResultPoint& b);
 };
 
 } // ZXing

@@ -15,21 +15,17 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-
 #include "GenericGFPoly.h"
-
 #include <list>
-#include <vector>
 
 namespace ZXing {
 
-// public only for testing purposes
 class ReedSolomonEncoder
 {
 public:
 	explicit ReedSolomonEncoder(const GenericGF& field);
 
-	void encode(std::vector<int>& message, int numECCodeWords);
+	void encode(std::vector<int>& toEncode, int ecBytes);
 
 private:
 	const GenericGF* _field;
@@ -38,12 +34,4 @@ private:
 	const GenericGFPoly& buildGenerator(int degree);
 };
 
-/**
- * @brief ReedSolomonEncode replaces the last numECCodeWords code words in message with error correction code words
- */
-inline void ReedSolomonEncode(const GenericGF& field, std::vector<int>& message, int numECCodeWords)
-{
-	ReedSolomonEncoder(field).encode(message, numECCodeWords);
-}
-
-} // namespace ZXing
+} // ZXing

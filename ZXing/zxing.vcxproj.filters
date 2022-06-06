@@ -5,6 +5,11 @@
       <Filter>4D Plugin API</Filter>
     </ClCompile>
     <ClCompile Include="4DPlugin-zxing.cpp" />
+    <ClCompile Include="4D Plugin API\Classes\C_TEXT.cpp" />
+    <ClCompile Include="support\4DPlugin-JSON.cpp" />
+    <ClCompile Include="support\format.cc" />
+    <ClCompile Include="support\one-arg.cc" />
+    <ClCompile Include="support\stb_image.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="4D Plugin API\4DPluginAPI.h">
@@ -23,6 +28,13 @@
       <Filter>4D Plugin API</Filter>
     </ClInclude>
     <ClInclude Include="4DPlugin-zxing.h" />
+    <ClInclude Include="4D Plugin API\Classes\C_TEXT.h" />
+    <ClInclude Include="4D Plugin API\Classes\C_TYPES.h" />
+    <ClInclude Include="support\4DPlugin-JSON.h" />
+    <ClInclude Include="support\fuzzer-common.h" />
+    <ClInclude Include="support\stb_image.h" />
+    <ClInclude Include="include\BarcodeFormat.h" />
+    <ClInclude Include="include\Result.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="4D Plugin API">

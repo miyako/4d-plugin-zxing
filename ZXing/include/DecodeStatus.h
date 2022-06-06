@@ -35,10 +35,4 @@ inline bool StatusIsError(DecodeStatus status)
 	return status != DecodeStatus::NoError;
 }
 
-inline const char* ToString(DecodeStatus status)
-{
-	constexpr const char* names[] = {"NoError", "NotFound", "FormatError", "ChecksumError"};
-	return names[static_cast<int>(status)];
-}
-
 } // ZXing

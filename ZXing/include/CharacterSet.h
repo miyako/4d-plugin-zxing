@@ -51,8 +51,6 @@ enum class CharacterSet
 	UnicodeBig,
 	UTF8,
 
-	BINARY,
-
 	CharsetCount
 };
 

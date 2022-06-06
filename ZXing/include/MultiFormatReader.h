@@ -16,8 +16,6 @@
 * limitations under the License.
 */
 
-#include "Result.h"
-
 #include <vector>
 #include <memory>
 
@@ -43,9 +41,6 @@ public:
     ~MultiFormatReader();
 
 	Result read(const BinaryBitmap& image) const;
-
-	// WARNING: this API is experimental and may change/disappear
-	Results readMultiple(const BinaryBitmap& image, int maxSymbols = 0xFF) const;
 
 private:
 	std::vector<std::unique_ptr<Reader>> _readers;

@@ -18,12 +18,10 @@
 
 #include "ByteArray.h"
 #include "DecodeStatus.h"
-#include "StructuredAppend.h"
-#include "ZXContainerAlgorithms.h"
 
 #include <memory>
+#include <list>
 #include <string>
-#include <utility>
 
 namespace ZXing {
 
@@ -42,13 +40,13 @@ class DecoderResult
 	ByteArray _rawBytes;
 	int _numBits = 0;
 	std::wstring _text;
+	std::list<ByteArray> _byteSegments;
 	std::wstring _ecLevel;
 	int _errorsCorrected = -1;
 	int _erasures = -1;
-	std::string _symbologyIdentifier;
-	StructuredAppendInfo _structuredAppend;
-	bool _isMirrored = false;
-	bool _readerInit = false;
+	int _structuredAppendSequenceNumber = 0;
+	int _structuredAppendCodeCount = 0;
+	int _structuredAppendParity = 0;
 	std::shared_ptr<CustomData> _extra;
 
 	DecoderResult(const DecoderResult &) = delete;
@@ -57,11 +55,11 @@ class DecoderResult
 public:
 	DecoderResult(DecodeStatus status) : _status(status) {}
 	DecoderResult(ByteArray&& rawBytes, std::wstring&& text) : _rawBytes(std::move(rawBytes)), _text(std::move(text)) {
-		_numBits = 8 * Size(_rawBytes);
+		_numBits = 8 * _rawBytes.length();
 	}
 
 	DecoderResult() = default;
-	DecoderResult(DecoderResult&&) noexcept = default;
+	DecoderResult(DecoderResult&&) = default;
 	DecoderResult& operator=(DecoderResult&&) = default;
 
 	bool isValid() const { return StatusIsOK(_status); }
@@ -88,16 +86,18 @@ public:
 	DecoderResult&& SETTER(TYPE&& v) && { _##GETTER = std::move(v); return std::move(*this); }
 
 	ZX_PROPERTY(int, numBits, setNumBits)
+	ZX_PROPERTY(std::list<ByteArray>, byteSegments, setByteSegments)
 	ZX_PROPERTY(std::wstring, ecLevel, setEcLevel)
 	ZX_PROPERTY(int, errorsCorrected, setErrorsCorrected)
 	ZX_PROPERTY(int, erasures, setErasures)
-	ZX_PROPERTY(std::string, symbologyIdentifier, setSymbologyIdentifier)
-	ZX_PROPERTY(StructuredAppendInfo, structuredAppend, setStructuredAppend)
-	ZX_PROPERTY(bool, isMirrored, setIsMirrored)
-	ZX_PROPERTY(bool, readerInit, setReaderInit)
+	ZX_PROPERTY(int, structuredAppendParity, setStructuredAppendParity)
+	ZX_PROPERTY(int, structuredAppendSequenceNumber, setStructuredAppendSequenceNumber)
+	ZX_PROPERTY(int, structuredAppendCodeCount, setStructuredAppendCodeCount)
 	ZX_PROPERTY(std::shared_ptr<CustomData>, extra, setExtra)
 
 #undef ZX_PROPERTY
+
+	bool hasStructuredAppend() const { return _structuredAppendParity >= 0 && _structuredAppendSequenceNumber >= 0; }
 };
 
 } // ZXing

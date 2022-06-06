@@ -14,15 +14,33 @@
 #include "4DPluginAPI.h"
 
 #include "DecodeHints.h"
+
+#if VERSIONMAC
 #include "ImageView.h"
+#endif
+
 #include "Result.h"
+
+#if VERSIONWIN
+namespace ZXing {
+	using Results = std::vector<Result>;
+}
+#endif
+
 #include "ReadBarcode.h"
+#include "BarcodeFormat.h"
 
 #if VERSIONMAC
 #import <Accelerate/Accelerate.h>
 #import <AVFoundation/AVFoundation.h>
 #import <ImageIO/ImageIO.h>
 #else
+#ifndef max
+#define max(a,b) (((a) > (b)) ? (a) : (b))
+#endif
+#ifndef min
+#define min(a,b) (((a) < (b)) ? (a) : (b))
+#endif
 #include <shlwapi.h>
 #include <gdiplus.h>
 #endif

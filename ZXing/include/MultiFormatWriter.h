@@ -14,11 +14,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-
 #include "BarcodeFormat.h"
 #include "CharacterSet.h"
-
-#include <string>
 
 namespace ZXing {
 
@@ -52,7 +49,7 @@ public:
 	}
 
 	/**
-	* Used for all formats, sets the minimum number of quiet zone pixels.
+	* Used for all 1D formats, PDF417, and QRCode only.
 	*/
 	MultiFormatWriter& setMargin(int margin) {
 		_margin = margin;

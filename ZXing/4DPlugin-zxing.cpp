@@ -77,10 +77,19 @@ static ZXing::Results pictureToImage(PA_Picture p) {
         
         if (buf != nullptr) {
             
-            ZXing::ImageView image((const uint8_t *)buf, x, y, ZXing::ImageFormat::RGB);
-            
+#if VERSIONMAC
+			ZXing::ImageView image((const uint8_t *)buf, x, y, ZXing::ImageFormat::RGB);
             results = ReadBarcodes(image);
-            
+#endif
+#if VERSIONWIN
+			results = { 
+				ZXing::ReadBarcode(x, y, 
+				(unsigned char *)buf, 
+				x * 3, 
+				3, 
+				0, 1, 2,{}, true, true)
+			};
+#endif
             free(buf);
         }
 
@@ -127,95 +136,152 @@ void zxing_decode(PA_PluginParameters params) {
         }
         
         ob_set_a(o, L"text", result.text().c_str());
-        ob_set_s(o, L"symbologyIdentifier", result.symbologyIdentifier().c_str());
-        ob_set_a(o, L"ecLevel", result.ecLevel().c_str());
-        ob_set_s(o, L"sequenceId", result.sequenceId().c_str());
-        
+
+#if VERSIONMAC
+		ob_set_s(o, L"symbologyIdentifier", result.symbologyIdentifier().c_str());
+		ob_set_a(o, L"ecLevel", result.ecLevel().c_str());
+		ob_set_s(o, L"sequenceId", result.sequenceId().c_str());
         ob_set_n(o, L"orientation", result.orientation());
-        ob_set_n(o, L"sequenceSize", result.sequenceSize());
-        ob_set_n(o, L"numBits", result.numBits());
+		ob_set_n(o, L"sequenceSize", result.sequenceSize());
+		ob_set_n(o, L"numBits", result.numBits());
+#endif
 
         switch (result.format()) {
-            case ZXing::BarcodeFormat::None:
-                ob_set_s(o, L"format", "none");
-                break;
-            case ZXing::BarcodeFormat::Aztec:
-                ob_set_s(o, L"format", "aztec");
-                break;
-            case ZXing::BarcodeFormat::Codabar:
-                ob_set_s(o, L"format", "codabar");
-                break;
-            case ZXing::BarcodeFormat::Code39:
-                ob_set_s(o, L"format", "code39");
-                break;
-            case ZXing::BarcodeFormat::Code93:
-                ob_set_s(o, L"format", "code93");
-                break;
-            case ZXing::BarcodeFormat::Code128:
-                ob_set_s(o, L"format", "code128");
-                break;
-            case ZXing::BarcodeFormat::DataBar:
-                ob_set_s(o, L"format", "dataBar");
-                break;
-            case ZXing::BarcodeFormat::DataBarExpanded:
-                ob_set_s(o, L"format", "dataBarExpanded");
-                break;
-            case ZXing::BarcodeFormat::DataMatrix:
-                ob_set_s(o, L"format", "dataMatrix");
-                break;
-            case ZXing::BarcodeFormat::EAN8:
-                ob_set_s(o, L"format", "EAN8");
-                break;
-            case ZXing::BarcodeFormat::EAN13:
-                ob_set_s(o, L"format", "EAN13");
-                break;
-            case ZXing::BarcodeFormat::ITF:
-                ob_set_s(o, L"format", "ITF");
-                break;
-            case ZXing::BarcodeFormat::MaxiCode:
-                ob_set_s(o, L"format", "maxiCode");
-                break;
-            case ZXing::BarcodeFormat::PDF417:
-                ob_set_s(o, L"format", "PDF417");
-                break;
-            case ZXing::BarcodeFormat::QRCode:
-                ob_set_s(o, L"format", "QRCode");
-                break;
-            case ZXing::BarcodeFormat::UPCA:
-                ob_set_s(o, L"format", "UPCA");
-                break;
-            case ZXing::BarcodeFormat::UPCE:
-                ob_set_s(o, L"format", "UPCE");
-                break;
+		case ZXing::BarcodeFormat::AZTEC:
+
+			break;
+		case ZXing::BarcodeFormat::CODABAR:
+
+			break;
+		case ZXing::BarcodeFormat::CODE_39:
+
+			break;
+		case ZXing::BarcodeFormat::CODE_93:
+
+			break;
+		case ZXing::BarcodeFormat::CODE_128:
+
+			break;
+		case ZXing::BarcodeFormat::DATA_MATRIX:
+
+			break;
+		case ZXing::BarcodeFormat::EAN_8:
+
+			break;
+		case ZXing::BarcodeFormat::EAN_13:
+
+			break;
+		case ZXing::BarcodeFormat::ITF:
+
+			break;
+		case ZXing::BarcodeFormat::MAXICODE:
+
+			break;
+		case ZXing::BarcodeFormat::PDF_417:
+
+			break;
+		case ZXing::BarcodeFormat::QR_CODE:
+
+			break;
+		case ZXing::BarcodeFormat::RSS_14:
+
+			break;
+		case ZXing::BarcodeFormat::RSS_EXPANDED:
+
+			break;
+		case ZXing::BarcodeFormat::UPC_A:
+
+			break;
+		case ZXing::BarcodeFormat::UPC_E:
+
+			break;
+		case ZXing::BarcodeFormat::UPC_EAN_EXTENSION:
+
+			break;
+			
+#if VERSIONMAC
+		case ZXing::BarcodeFormat::None:
+			ob_set_s(o, L"format", "none");
+			break;
+		case ZXing::BarcodeFormat::Aztec:
+			ob_set_s(o, L"format", "aztec");
+			break;
+		case ZXing::BarcodeFormat::Codabar:
+			ob_set_s(o, L"format", "codabar");
+			break;
+		case ZXing::BarcodeFormat::Code39:
+			ob_set_s(o, L"format", "code39");
+			break;
+		case ZXing::BarcodeFormat::Code93:
+			ob_set_s(o, L"format", "code93");
+			break;
+		case ZXing::BarcodeFormat::Code128:
+			ob_set_s(o, L"format", "code128");
+			break;
+		case ZXing::BarcodeFormat::DataBar:
+			ob_set_s(o, L"format", "dataBar");
+			break;
+		case ZXing::BarcodeFormat::DataBarExpanded:
+			ob_set_s(o, L"format", "dataBarExpanded");
+			break;
+		case ZXing::BarcodeFormat::DataMatrix:
+			ob_set_s(o, L"format", "dataMatrix");
+			break;
+		case ZXing::BarcodeFormat::EAN8:
+			ob_set_s(o, L"format", "EAN8");
+			break;
+		case ZXing::BarcodeFormat::EAN13:
+			ob_set_s(o, L"format", "EAN13");
+			break;
+		case ZXing::BarcodeFormat::ITF:
+			ob_set_s(o, L"format", "ITF");
+			break;
+		case ZXing::BarcodeFormat::MaxiCode:
+			ob_set_s(o, L"format", "maxiCode");
+			break;
+		case ZXing::BarcodeFormat::PDF417:
+			ob_set_s(o, L"format", "PDF417");
+			break;
+		case ZXing::BarcodeFormat::QRCode:
+			ob_set_s(o, L"format", "QRCode");
+			break;
+		case ZXing::BarcodeFormat::UPCA:
+			ob_set_s(o, L"format", "UPCA");
+			break;
+		case ZXing::BarcodeFormat::UPCE:
+			ob_set_s(o, L"format", "UPCE");
+			break;
+#endif
         }
         
+#if VERSIONMAC
         ob_set_b(o, L"isLastInSequence", result.isLastInSequence());
         ob_set_b(o, L"isMirrored", result.isMirrored());
         ob_set_b(o, L"isPartOfSequence", result.isPartOfSequence());
         ob_set_b(o, L"isValid", result.isValid());
-        
         ob_set_n(o, L"lineCount", result.lineCount());
-        
-        auto positions = result.position();
-        
-        PA_CollectionRef corners = PA_CreateCollection();
-        
-        for(auto itt = positions.begin(); itt != positions.end(); ++itt) {
-            
-            ZXing::PointT<int> position = *itt;
-            
-            PA_ObjectRef corner = PA_CreateObject();
-            ob_set_n(corner, L"x", position.x);
-            ob_set_n(corner, L"y", position.y);
 
-            PA_Variable vv = PA_CreateVariable(eVK_Object);
-            PA_SetObjectVariable(&vv, corner);
-            PA_SetCollectionElement(corners, PA_GetCollectionLength(corners), vv);
-            PA_ClearVariable(&vv);
-            
-        }
-        
-        ob_set_c(o, L"corners", corners);
+		auto positions = result.position();
+
+		PA_CollectionRef corners = PA_CreateCollection();
+
+		for (auto itt = positions.begin(); itt != positions.end(); ++itt) {
+
+			ZXing::PointT<int> position = *itt;
+
+			PA_ObjectRef corner = PA_CreateObject();
+			ob_set_n(corner, L"x", position.x);
+			ob_set_n(corner, L"y", position.y);
+
+			PA_Variable vv = PA_CreateVariable(eVK_Object);
+			PA_SetObjectVariable(&vv, corner);
+			PA_SetCollectionElement(corners, PA_GetCollectionLength(corners), vv);
+			PA_ClearVariable(&vv);
+
+		}
+
+		ob_set_c(o, L"corners", corners);
+#endif
 
         PA_Variable v = PA_CreateVariable(eVK_Object);
         PA_SetObjectVariable(&v, o);

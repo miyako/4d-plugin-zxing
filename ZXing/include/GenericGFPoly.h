@@ -16,12 +16,12 @@
 * limitations under the License.
 */
 
-#include "ZXContainerAlgorithms.h"
+#include "ZXConfig.h"
 
-#include <algorithm>
 #include <cassert>
-#include <cstddef>
 #include <vector>
+#include <utility>
+#include <algorithm>
 
 namespace ZXing {
 
@@ -96,19 +96,15 @@ public:
 		*this = other;
 	}
 
-	GenericGFPoly& setField(const GenericGF& field)
-	{
-		_field = &field;
-		return *this;
+	const std::vector<int>& coefficients() const {
+		return _coefficients;
 	}
-	const GenericGF& field() const noexcept { return *_field; }
-	const auto& coefficients() const noexcept { return _coefficients; }
 
 	/**
 	* @return degree of this polynomial
 	*/
 	int degree() const {
-		return Size(_coefficients) - 1;
+		return static_cast<int>(_coefficients.size()) - 1;
 	}
 
 	/**
@@ -118,26 +114,11 @@ public:
 		return _coefficients[0] == 0;
 	}
 
-	int leadingCoefficient() const noexcept {
-		return _coefficients.front();
-	}
-
-	int constant() const noexcept {
-		return _coefficients.back();
-	}
-
 	/**
-	 * @brief set to the monomial representing coefficient * x^degree
-	 */
-	GenericGFPoly& setMonomial(int coefficient, int degree = 0)
-	{
-		assert(degree >= 0 && (coefficient != 0 || degree == 0));
-
-		_coefficients.resize(degree + 1);
-		std::fill(_coefficients.begin(), _coefficients.end(), 0);
-		_coefficients.front() = coefficient;
-
-		return *this;
+	* @return coefficient of x^degree term in this polynomial
+	*/
+	int coefficient(int degree) const {
+		return _coefficients[_coefficients.size() - 1 - degree];
 	}
 
 	/**
@@ -147,7 +128,8 @@ public:
 
 	GenericGFPoly& addOrSubtract(GenericGFPoly& other);
 	GenericGFPoly& multiply(const GenericGFPoly& other);
-	GenericGFPoly& multiplyByMonomial(int coefficient, int degree = 0);
+	GenericGFPoly& multiply(int scalar);
+	GenericGFPoly& multiplyByMonomial(int degree, int coefficient);
 	GenericGFPoly& divide(const GenericGFPoly& other, GenericGFPoly& quotient);
 
 	friend void swap(GenericGFPoly& a, GenericGFPoly& b)
@@ -157,6 +139,8 @@ public:
 	}
 
 private:
+	friend class GenericGF;
+
 	void normalize();
 
 	const GenericGF* _field = nullptr;

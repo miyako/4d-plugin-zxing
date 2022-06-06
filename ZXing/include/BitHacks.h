@@ -16,8 +16,8 @@
 * limitations under the License.
 */
 
-#include <cassert>
 #include <cstdint>
+#include <cassert>
 #include <vector>
 
 #if defined(__clang__) || defined(__GNUC__)
