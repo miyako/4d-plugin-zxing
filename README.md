@@ -4,7 +4,7 @@
 ![downloads](https://img.shields.io/github/downloads/miyako/4d-plugin-zxing/total)
 
 # 4d-plugin-zxing
-Decode QR code with ZXing.
+Decode 1D/2D barcode with ZXing.
 
 macOS: 
 
