@@ -11,6 +11,20 @@
 #ifndef PLUGIN_ZXING_H
 #define PLUGIN_ZXING_H
 
+/* Must come before anything that might pull in <windows.h> (including
+   4DPluginAPI.h below): <windows.h> auto-includes the old Winsock 1.1
+   <winsock.h> unless WIN32_LEAN_AND_MEAN is already defined, and once that's
+   happened, any later <winsock2.h>/<ws2tcpip.h> include (from the project's
+   Windows compat headers) conflicts with it — duplicate struct/function
+   definitions across the whole file. Including <winsock2.h> first here wins
+   that race unconditionally. Gated on the compiler-provided _WIN32 rather
+   than the SDK's own VERSIONMAC/VERSIONWIN, since those aren't defined yet
+   at this point in the file. */
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <winsock2.h>
+#endif
+
 #include "4DPluginAPI.h"
 
 #include "DecodeHints.h"
