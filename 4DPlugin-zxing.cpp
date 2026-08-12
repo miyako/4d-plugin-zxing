@@ -10,6 +10,8 @@
 
 #include "4DPlugin-zxing.h"
 
+#include <climits>
+
 #pragma mark -
 
 void PluginMain(PA_long32 selector, PA_PluginParameters params) {
@@ -44,7 +46,8 @@ static ZXing::Results pictureToImage(PA_Picture p) {
     args[0] = PA_CreateVariable(eVK_Picture);
     PA_SetPictureVariable(&args[0], p);
     args[1] = PA_CreateVariable(eVK_Unistring);
-    PA_Unistring ustr = PA_CreateUnistring((PA_Unichar *)".\0b\0m\0p\0\0\0");
+    static const char16_t bmpExtension[] = u".bmp";
+    PA_Unistring ustr = PA_CreateUnistring((PA_Unichar *)bmpExtension);
     PA_SetStringVariable(&args[1], &ustr);
     
     PA_ExecuteCommandByID(CONVERT_PICTURE, args, 2);
@@ -66,13 +69,19 @@ static ZXing::Results pictureToImage(PA_Picture p) {
     {
         const uint8_t *data = (const uint8_t*)PA_LockHandle(h);
         size_t size = PA_GetHandleSize(h);
-        int x, y, channels;
-        
-        void *buf = stbi_load_from_memory(data, size,
-                                          &x,
-                                          &y,
-                                          &channels, 3);
-        
+        int x = 0, y = 0, channels = 0;
+        void *buf = nullptr;
+
+        /* stbi_load_from_memory's length parameter is a plain int; reject
+           anything that wouldn't survive the size_t -> int conversion
+           instead of silently truncating/going negative. */
+        if (size <= (size_t)INT_MAX) {
+            buf = stbi_load_from_memory(data, (int)size,
+                                         &x,
+                                         &y,
+                                         &channels, 3);
+        }
+
         PA_UnlockHandle(h);
         
         if (buf != nullptr) {
@@ -94,6 +103,8 @@ static ZXing::Results pictureToImage(PA_Picture p) {
 #pragma mark -
 
 void zxing_decode(PA_PluginParameters params) {
+
+  try {
 
     PA_Picture p = PA_GetPictureParameter(params, 1);
     
@@ -123,6 +134,9 @@ void zxing_decode(PA_PluginParameters params) {
                 break;
             case ZXing::DecodeStatus::ChecksumError:
                 ob_set_s(o, L"status", "checksumError");
+                break;
+            default:
+                ob_set_s(o, L"status", "unknown");
                 break;
         }
         
@@ -187,6 +201,9 @@ void zxing_decode(PA_PluginParameters params) {
 		case ZXing::BarcodeFormat::UPCE:
 			ob_set_s(o, L"format", "UPCE");
 			break;
+		default:
+			ob_set_s(o, L"format", "unknown");
+			break;
         }
         
         ob_set_b(o, L"isLastInSequence", result.isLastInSequence());
@@ -225,5 +242,20 @@ void zxing_decode(PA_PluginParameters params) {
     ob_set_c(status, L"results", col);
     
     PA_ReturnObject(params, status);
+
+  } catch (...) {
+
+    /* Guarantee a return even on failure: this command has a declared
+       return type (see manifest.json "zxing decode(&P):J"), so a swallowed
+       exception with no PA_ReturnObject call would leave 4D waiting on a
+       return that never arrives (a freeze) rather than just losing this
+       call's result. */
+    PA_ObjectRef errorStatus = PA_CreateObject();
+    ob_set_s(errorStatus, L"status", "error");
+    PA_CollectionRef emptyResults = PA_CreateCollection();
+    ob_set_c(errorStatus, L"results", emptyResults);
+    PA_ReturnObject(params, errorStatus);
+
+  }
 }
 

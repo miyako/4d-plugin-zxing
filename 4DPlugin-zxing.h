@@ -40,6 +40,16 @@
 
 #include "C_TEXT.h"
 
+/* zxing decode() is declared threadSafe in manifest.json. stb_image keeps its
+   last-error string (stbi__g_failure_reason) in a plain global unless
+   STBI_THREAD_LOCAL is defined before the header is included, which would be
+   a data race under concurrent calls. This code doesn't currently read that
+   global, so it's not a live bug, but defining this is free insurance and a
+   no-op if this vendored stb_image.h doesn't use the macro. */
+#ifndef STBI_THREAD_LOCAL
+#define STBI_THREAD_LOCAL thread_local
+#endif
+
 #include <stb_image.h>
 
 #pragma mark -
