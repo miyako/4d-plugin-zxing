@@ -96,11 +96,6 @@ static ZXing::Results pictureToImage(PA_Picture p) {
     }
     
     PA_DisposeHandle(h);
-
-    /* p here is the picture retrieved from CONVERT_PICTURE above, explicitly
-       detached from args[0] so it wouldn't be freed by PA_ClearVariable --
-       meaning this function owns it and is responsible for releasing it. */
-    PA_DisposePicture(p);
     
     return results;
 }
@@ -118,11 +113,6 @@ void zxing_decode(PA_PluginParameters params) {
     PA_ObjectRef status = PA_CreateObject();
     
     ZXing::Results results = pictureToImage(p);
-
-    /* p is passed by value above, so this is still the same duplicate/
-       retained handle created by PA_DuplicatePicture -- release it now
-       that decoding is done. */
-    PA_DisposePicture(p);
     
     PA_CollectionRef col = PA_CreateCollection();
     

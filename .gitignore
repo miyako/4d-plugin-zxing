@@ -2,3 +2,4 @@ ZXing/build/*
 ZXing/test/userPreferences.*
 *.DS_Store
 build/*
+test/userPreferences.*
