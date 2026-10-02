@@ -42,6 +42,7 @@
 		D1FAE113284DE7C6004DCC49 /* format.cc in Sources */ = {isa = PBXBuildFile; fileRef = D1FAE112284DE7C6004DCC49 /* format.cc */; };
 		D1FAE115284DE826004DCC49 /* stb_image.c in Sources */ = {isa = PBXBuildFile; fileRef = D1FAE114284DE826004DCC49 /* stb_image.c */; };
 		D1FAE117284DE855004DCC49 /* libZXing.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D1FAE116284DE855004DCC49 /* libZXing.a */; };
+		3249D6AA5E53E470C66B5DFE /* constants.xlf in CopyFiles */ = {isa = PBXBuildFile; fileRef = D14D10DD1A03A8A5008B3411 /* constants.xlf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -52,6 +53,7 @@
 			dstSubfolderSpec = 7;
 			files = (
 				D134D4AC1A030BA0008D14EF /* manifest.json in CopyFiles */,
+				3249D6AA5E53E470C66B5DFE /* constants.xlf in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
