@@ -43,7 +43,9 @@ static std::set<FakePicture *> gPictures;
 static std::set<FakeObject *> gObjects;
 static std::set<FakeCollection *> gCollections;
 static int gInvalidFrees = 0;
-static bool gConvertFails = false;
+// how the synthetic engine implements CONVERT PICTURE (1002)
+enum ConvertModel { kReplaceAndRelease, kFailUntouched, kNoopUntouched, kInPlace };
+static ConvertModel gConvert = kReplaceAndRelease;
 
 static std::u16string u16(const PA_Unistring &u) {
     return u.fString ? std::u16string((const char16_t *)u.fString, u.fLength) : std::u16string();
@@ -176,8 +178,10 @@ static void execute_command(EngineBlock *eb) {
         case 1472: ret->fType = eVK_Collection; ret->uValue.fCollection = col_new(); break;
         case 1225: ret->fType = eVK_Object; ret->uValue.fObject = obj_clone((FakeObject *)params[0]->uValue.fObject); break;
         case 1002: { // CONVERT PICTURE: replaces the picture held by the variable
-            if (gConvertFails) { eb->fError = -1; break; }
             PA_Variable *pv = params[0];
+            if (gConvert == kFailUntouched) { eb->fError = -1; break; }
+            if (gConvert == kNoopUntouched) break;
+            if (gConvert == kInPlace) { ((FakePicture *)pv->uValue.fPicture)->bytes = synthetic_bmp(); break; }
             FakePicture *old = (FakePicture *)pv->uValue.fPicture;
             pv->uValue.fPicture = pic_new(synthetic_bmp());
             pic_release(old);
@@ -336,13 +340,13 @@ int main() {
         return same(a, b, "decode/no results") && callerIntact;
     });
     run("defect_decode_convert_failure_releases_retained_param", [&] {
-        gStubResults.clear(); gConvertFails = true;
+        gStubResults.clear(); gConvert = kFailUntouched;
         PA_Picture in = PA_CreatePicture(png.data(), (PA_long32)png.size());
         Snapshot a = snap();
         PA_ObjectRef r = call_decode(in);
         clear_object(r);
         Snapshot b = snap();
-        gConvertFails = false;
+        gConvert = kReplaceAndRelease;
         bool refOk = ((FakePicture *)in)->refcount == 1;
         if (!refOk) fprintf(stderr, "  caller picture refcount %d (expected 1)\n", ((FakePicture *)in)->refcount);
         PA_DisposePicture(in);
@@ -408,6 +412,29 @@ int main() {
             ob_set_n(o, L"n", 1.5); ob_set_b(o, L"b", true); ob_set_i(o, L"i", 3); ob_set_0(o, L"z");
             ob_set_c(o, L"c", PA_CreateCollection()); ob_set_o(o, L"o", PA_CreateObject());
         });
+    });
+    auto engine_model = [&](const char *name, ConvertModel model, bool expectDecoded) {
+        gStubResults.clear(); gConvert = model; gLastWidth = gLastHeight = 0;
+        PA_Picture in = PA_CreatePicture(png.data(), (PA_long32)png.size());
+        Snapshot a = snap();
+        PA_ObjectRef r = call_decode(in);
+        clear_object(r);
+        Snapshot b = snap();
+        gConvert = kReplaceAndRelease;
+        bool alive = gPictures.count((FakePicture *)in) && ((FakePicture *)in)->refcount == 1;
+        if (!alive) fprintf(stderr, "  [%s] caller picture freed or over-retained\n", name);
+        bool decoded = (gLastWidth == 2) == expectDecoded;
+        if (alive) PA_DisposePicture(in);
+        return same(a, b, name) && alive && decoded;
+    };
+    run("control_engine_noop_untouched_caller_picture_live", [&] {
+        return engine_model("engine no-op", kNoopUntouched, false);
+    });
+    run("control_engine_inplace_caller_picture_live", [&] {
+        return engine_model("engine in-place", kInPlace, true);
+    });
+    run("control_engine_replace_caller_picture_live", [&] {
+        return engine_model("engine replace", kReplaceAndRelease, true);
     });
     run("control_caller_picture_not_freed", [&] {
         gStubResults.clear();

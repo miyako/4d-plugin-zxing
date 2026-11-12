@@ -44,7 +44,9 @@ static ZXing::Results pictureToImage(PA_Picture p) {
     //convert picture
     PA_Variable args[3];
     args[0] = PA_CreateVariable(eVK_Undefined);
-    PA_SetPictureVariable(&args[0], p);
+    /* p is borrowed; args[0] gets its own retained reference so clearing it
+       below is safe whether CONVERT PICTURE replaces the picture or not */
+    PA_SetPictureVariable(&args[0], PA_DuplicatePicture(p, 1));
     args[1] = PA_CreateVariable(eVK_Undefined);
     static const char16_t bmpExtension[] = u".bmp";
     PA_Unistring ustr = PA_CreateUnistring((PA_Unichar *)bmpExtension);
@@ -106,8 +108,6 @@ void zxing_decode(PA_PluginParameters params) {
   try {
 
     PA_Picture p = PA_GetPictureParameter(params, 1);
-    
-    p = PA_DuplicatePicture(p, 1);
     
     PA_ObjectRef status = PA_CreateObject();
     
