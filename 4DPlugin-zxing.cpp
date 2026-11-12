@@ -43,20 +43,18 @@ static ZXing::Results pictureToImage(PA_Picture p) {
     
     //convert picture
     PA_Variable args[3];
-    args[0] = PA_CreateVariable(eVK_Picture);
+    args[0] = PA_CreateVariable(eVK_Undefined);
     PA_SetPictureVariable(&args[0], p);
-    args[1] = PA_CreateVariable(eVK_Unistring);
+    args[1] = PA_CreateVariable(eVK_Undefined);
     static const char16_t bmpExtension[] = u".bmp";
     PA_Unistring ustr = PA_CreateUnistring((PA_Unichar *)bmpExtension);
     PA_SetStringVariable(&args[1], &ustr);
     
     PA_ExecuteCommandByID(CONVERT_PICTURE, args, 2);
     
-    p = PA_GetPictureVariable(args[0]);/* the picture has been converted */
+    /* borrowed: args[0] owns the (converted) picture until it is cleared below */
+    p = PA_GetPictureVariable(args[0]);
     
-    PA_SetPictureVariable(&args[0], NULL);
-    
-    PA_ClearVariable(&args[0]);
     PA_ClearVariable(&args[1]);
         
     PA_Handle h = PA_NewHandle(0);
@@ -96,6 +94,7 @@ static ZXing::Results pictureToImage(PA_Picture p) {
     }
     
     PA_DisposeHandle(h);
+    PA_ClearVariable(&args[0]);
     
     return results;
 }
